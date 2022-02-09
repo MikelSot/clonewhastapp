@@ -1,0 +1,34 @@
+version: "3.7"
+services:
+  db:
+    image: postgres:12.8-alpine
+    container_name: "clone-db"
+    environment:
+      - POSTGRES_DB=clone
+      - POSTGRES_USER=mikel
+      - POSTGRES_PASSWORD=123456
+    volumes:
+      - data:/var/lib/postgresql/data
+    ports:
+      - "5000:5432"
+  api:
+    build:
+      context: .
+      dockerfile: api.Dockerfile
+    image: clone-whatsapp:1.0
+    container_name: "clone-whatsapp"
+    ports:
+      - "8000:8000"
+    links:
+      - db
+    volumes:
+      - .:/go/src/clonewhastapp
+volumes:
+  data:
+    driver: local
+
+
+
+
+
+
