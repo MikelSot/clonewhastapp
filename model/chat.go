@@ -1,6 +1,14 @@
 package model
 
-import "time"
+import (
+	"errors"
+	"time"
+)
+
+var (
+	ErrChatsUserIDFK  = errors.New("chat: The user(user_id) identification must be foreign")
+	ErrChatsGroupIDFK = errors.New("chat: La identificación del grupo (group_id) debe ser extranjera")
+)
 
 type Chat struct {
 	ID        uint      `json:"id"`

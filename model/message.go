@@ -1,6 +1,14 @@
 package model
 
-import "time"
+import (
+	"errors"
+	"time"
+)
+
+var (
+	ErrMessagesUserIDFK = errors.New("message: The user(user_id) identification must be foreign")
+	ErrMessagesChatIDFK = errors.New("message: The chat(chat_id) identification must be foreign")
+)
 
 type Message struct {
 	ID        uint        `json:"id"`
