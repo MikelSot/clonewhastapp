@@ -166,7 +166,7 @@ func (u User) UpdateNickname(m *model.User) error {
 }
 
 func (u User) DeleteSoft(ID uint) error {
-	if err := u.DeleteSoft(ID); err != nil {
+	if err := u.storage.DeleteSoft(ID); err != nil {
 		return fmt.Errorf("User.DeleteSoft: could not delete the record %d, %w", ID, err)
 	}
 
@@ -174,7 +174,7 @@ func (u User) DeleteSoft(ID uint) error {
 }
 
 func (u User) Delete(ID uint) error {
-	if err := u.Delete(ID); err != nil {
+	if err := u.storage.Delete(ID); err != nil {
 		return fmt.Errorf("User.Delete: could not delete the record %d, %w", ID, err)
 	}
 

@@ -1,6 +1,8 @@
 package group
 
 import (
+	"database/sql"
+	"errors"
 	"fmt"
 	"strings"
 
@@ -27,14 +29,27 @@ func New(storage Storage) Group {
 
 func (g Group) Create(m *model.Group) error {
 	if err := model.ValidateStructNil(m); err != nil {
-		return fmt.Errorf("user: %w", err)
+		return fmt.Errorf("group: %w", err)
 	}
 
-	if err := g.isValidateData(m); err != nil {
-		return err
-	}
+	//if err := g.isValidateData(m); err != nil {
+	//	return err
+	//}
 
-	// validar si existe otro grupo con ese mismo nombre
+	//newError := model.NewError()
+	// ESTE metodo de ver si existe un grupo con ese nombre es ambiguo es decir
+	// necesitamos solo buscar en los grupos que esta agregado el usuario y ver si existe un nombre igual
+	// de hecho mejor estos metodos de vaidar que vallan en un RELATION user algo asi
+	//group, err := g.getByName(m.Name)
+	//if err != nil {
+	//	return fmt.Errorf("group.u.getByName(): %w", err)
+	//}
+	//if group.HasID() {
+	//	newError.SetError(fmt.Errorf("Oops! A group with that name already exists"))
+	//	newError.SetAPIMessage("¡Upps! Ya existe un grupo con ese nombre")
+	//
+	//	return newError
+	//}
 
 	if err := g.storage.Create(m); err != nil {
 		return fmt.Errorf("group.storage.Create(): %w", err)
@@ -44,35 +59,84 @@ func (g Group) Create(m *model.Group) error {
 }
 
 func (g Group) Update(m *model.Group) error {
-	//TODO implement me
-	panic("implement me")
+	if err := model.ValidateStructNil(m); err != nil {
+		return fmt.Errorf("group: %w", err)
+	}
+
+	if err := g.storage.Update(m); err != nil {
+		return fmt.Errorf("group.storage.Create(): %w", err)
+	}
+
+	return nil
 }
 
 func (g Group) UpdatePicture(m *model.Group) error {
-	//TODO implement me
-	panic("implement me")
+	if err := model.ValidateStructNil(m); err != nil {
+		return fmt.Errorf("group: %w", err)
+	}
+
+	if err := g.storage.UpdatePicture(m); err != nil {
+		return fmt.Errorf("group.storage.Create(): %w", err)
+	}
+
+	return nil
 }
 
 func (g Group) DeleteSoft(ID uint) error {
-	//TODO implement me
-	panic("implement me")
+	if err := g.storage.DeleteSoft(ID); err != nil {
+		return fmt.Errorf("User.DeleteSoft: could not delete the record %d, %w", ID, err)
+	}
+
+	return nil
 }
 
 func (g Group) Delete(ID uint) error {
-	//TODO implement me
-	panic("implement me")
+	if err := g.storage.Delete(ID); err != nil {
+		return fmt.Errorf("User.Delete: could not delete the record %d, %w", ID, err)
+	}
+
+	return nil
 }
 
 func (g Group) GetByID(ID uint) (model.Group, error) {
-	//TODO implement me
-	panic("implement me")
+	m, err := g.storage.GetWhere(
+		models.FieldsSpecification{
+			models.Fields{
+				{Name: "id", Value: ID},
+				{Name: "deleted_at", Operator: models.IsNull},
+			},
+			models.SortFields{},
+			models.Pagination{},
+		},
+	)
+	if errors.Is(err, sql.ErrNoRows) {
+		return model.Group{}, nil
+	}
+	if err != nil {
+		return model.Group{}, err
+	}
+
+	return m, nil
 }
 
 func (g Group) GetWhere(specification models.FieldsSpecification) (model.Group, error) {
-	//TODO implement me
-	panic("implement me")
+	if err := specification.Filters.ValidateNames(allowedFieldsForQuery); err != nil {
+		return model.Group{}, fmt.Errorf("group: %w", err)
+	}
+
+	if err := specification.Sorts.ValidateNames(allowedFieldsForQuery); err != nil {
+		return model.Group{}, fmt.Errorf("group: %w", err)
+	}
+
+	group, err := g.storage.GetWhere(specification)
+	if err != nil {
+		return model.Group{}, fmt.Errorf("group: %w", err)
+	}
+
+	return group, nil
 }
 
+// en relation
 func (g Group) isValidateData(m *model.Group) error {
 	m.Name = strings.TrimSpace(m.Name)
 

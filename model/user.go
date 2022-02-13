@@ -9,8 +9,8 @@ import (
 )
 
 var (
-	ErrUsersNicknameUK = errors.New("The nickname must be unique")
-	ErrUsersEmailUK    = errors.New("The email must be unique.")
+	ErrUsersNicknameUK = errors.New("user: The nickname must be unique")
+	ErrUsersEmailUK    = errors.New("user: The email must be unique.")
 )
 
 var emailRegex = regexp.MustCompile("^[a-zA-Z0-9.!#$%&'*+\\/=?^_`{|}~-]+@[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?(?:\\.[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?)*$")
