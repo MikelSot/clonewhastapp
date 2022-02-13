@@ -130,7 +130,7 @@ func (g Group) GetWhere(specification models.FieldsSpecification) (model.Group, 
 
 	group, err := g.storage.GetWhere(specification)
 	if err != nil {
-		return model.Group{}, fmt.Errorf("group: %w", err)
+		return model.Group{}, fmt.Errorf("group:  %w", err)
 	}
 
 	return group, nil
