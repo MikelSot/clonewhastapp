@@ -12,4 +12,10 @@ type Group struct {
 	DeletedAt   time.Time `json:"deleted_at"`
 }
 
+func (g Group) HasID() bool { return g.ID > 0 }
+
 type Groups []Group
+
+func (g Groups) IsEmpty() bool {
+	return len(g) < 0
+}

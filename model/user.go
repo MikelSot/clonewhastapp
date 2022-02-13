@@ -54,6 +54,10 @@ func (u User) IsValidPassword(lenValid int) bool {
 	return len(u.Password) >= lenValid
 }
 
+func (u User) IsValidNickname(lenValid int) bool {
+	return len(u.Nickname) >= lenValid
+}
+
 type Users []User
 
 func (u Users) IsEmpty() bool {

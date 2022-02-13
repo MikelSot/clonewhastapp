@@ -57,38 +57,125 @@ func (u User) Create(m *model.User) error {
 	}
 
 	if err = u.storage.Create(m); err != nil {
-		return fmt.Errorf("user: %w", err)
+		return fmt.Errorf("user.storage.Create(): %w", err)
 	}
 
-	// TODO: send confirmation email
+	// TODO: send confirmation email (esto seria mejor en el use case de AUTH, en veremos)
+	// TODO: crear el metodo de actualizar `confirmed_email`(este mas que nada puede ser en auth)
 
 	return nil
 }
 
 func (u User) Update(m *model.User) error {
-	//TODO implement me
-	panic("implement me")
+	if err := model.ValidateStructNil(m); err != nil {
+		return fmt.Errorf("user: %w", err)
+	}
+
+	if err := u.isValidateData(m); err != nil {
+		return err
+	}
+
+	newError := model.NewError()
+	user, err := u.GetByEmail(m.Email)
+	if err != nil {
+		return fmt.Errorf("user.u.GetByEmail(): %w", err)
+	}
+	if user.HasID() {
+		newError.SetError(fmt.Errorf("Oops! There is already a user with that email"))
+		newError.SetAPIMessage("¡Upps! Ya existe un usuario con ese email")
+
+		return newError
+	}
+
+	user, err = u.GetByNickname(m.Nickname)
+	if err != nil {
+		return fmt.Errorf("user.u.GetByNickname(): %w", err)
+	}
+	if user.HasID() {
+		newError.SetError(fmt.Errorf("Oops! There is already a user with that nickname"))
+		newError.SetAPIMessage("¡Upps! Ya existe un usuario con ese nickname")
+
+		return newError
+	}
+
+	if err = u.storage.Update(m); err != nil {
+		return fmt.Errorf("user.storage.Update(): %w", err)
+	}
+
+	// TODO: send an email that your information was edited
+
+	return nil
 }
 
 func (u User) ResetPassword(m *model.User) error {
-	//TODO implement me
-	panic("implement me")
+	newError := model.NewError()
+	if !m.IsValidPassword(defaultMinLenPassword) {
+		newError.SetError(fmt.Errorf("Oops! invalid password error"))
+		newError.SetAPIMessage("¡Upps! error password no valido")
+
+		return newError
+	}
+
+	user, err := u.GetByEmail(m.Email)
+	if err != nil {
+		return fmt.Errorf("user.u.GetByEmail(): %w", err)
+	}
+	if !user.HasID() {
+		newError.SetError(fmt.Errorf("Oops! could not get user"))
+		newError.SetAPIMessage("¡Upps! no se pudo obtener el usuario")
+
+		return newError
+	}
+
+	if err = u.storage.ResetPassword(m); err != nil {
+		return fmt.Errorf("user.storage.ResetPassword(): %w", err)
+	}
+
+	//TODO: borrar token (para que denuevo se logue con la contra nueva)
+
+	return nil
 }
 
 func (u User) UpdateNickname(m *model.User) error {
-	// validar que el nickname sea unico
+	newError := model.NewError()
+	if !m.IsValidPassword(defaultMinLenName) {
+		newError.SetError(fmt.Errorf("Oops! too short nickname error"))
+		newError.SetAPIMessage("¡Upps! error nickname muy corto")
+
+		return newError
+	}
+
+	user, err := u.GetByNickname(m.Nickname)
+	if err != nil {
+		return fmt.Errorf("user.u.GetByNickname(): %w", err)
+	}
+	if user.HasID() {
+		newError.SetError(fmt.Errorf("Oops! There is already a user with that nickname"))
+		newError.SetAPIMessage("¡Upps! Ya existe un usuario con ese nickname")
+
+		return newError
+	}
+
+	if err = u.storage.UpdateNickname(m); err != nil {
+		return fmt.Errorf("user.storage.UpdateNickname(): %w", err)
+	}
+
+	//TODO: send update nickname
 
 	return nil
 }
 
 func (u User) DeleteSoft(ID uint) error {
-	//TODO implement me
-	panic("implement me")
+	if err := u.DeleteSoft(ID); err != nil {
+		return fmt.Errorf("User.DeleteSoft: could not delete the record %d, %w", ID, err)
+	}
+
+	return nil
 }
 
 func (u User) Delete(ID uint) error {
 	if err := u.Delete(ID); err != nil {
-		return fmt.Errorf("User: could not delete the record %d, %w", ID, err)
+		return fmt.Errorf("User.Delete: could not delete the record %d, %w", ID, err)
 	}
 
 	return nil
