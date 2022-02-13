@@ -49,7 +49,7 @@ func New(db *sql.DB) User {
 }
 
 func (u User) Create(m *model.User) error {
-	bp, err := bcrypt.GenerateFromPassword([]byte(m.Password), bcrypt.DefaultCost)
+	pass, err := bcrypt.GenerateFromPassword([]byte(m.Password), bcrypt.DefaultCost)
 	if err != nil {
 		return fmt.Errorf("generando el hash del password: %v", err)
 	}
@@ -65,7 +65,7 @@ func (u User) Create(m *model.User) error {
 		m.LastName,
 		sqlutil.StringToNull(m.Nickname),
 		m.Email,
-		bp,
+		pass,
 		sqlutil.StringToNull(m.Description),
 		sqlutil.StringToNull(m.Picture),
 		m.ConfirmedEmail,
@@ -103,13 +103,18 @@ func (u User) Update(m *model.User) error {
 }
 
 func (u User) ResetPassword(m *model.User) error {
+	pass, err := bcrypt.GenerateFromPassword([]byte(m.Password), bcrypt.DefaultCost)
+	if err != nil {
+		return fmt.Errorf("generando el hash del password: %v", err)
+	}
+
 	stmt, err := u.db.Prepare(psqlResetPassword)
 	if err != nil {
 		return err
 	}
 	defer stmt.Close()
 
-	return sqlutil.ExecAffectingOneRow(stmt, m.Password, m.ID)
+	return sqlutil.ExecAffectingOneRow(stmt, pass, m.ID)
 }
 
 func (u User) UpdateNickname(m *model.User) error {
