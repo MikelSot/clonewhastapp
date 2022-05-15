@@ -2,10 +2,10 @@ package message
 
 import (
 	"database/sql"
-	"github.com/AJRDRGZ/db-query-builder/postgres"
-	sqlutil "github.com/alexyslozada/gosqlutils"
 
 	"github.com/AJRDRGZ/db-query-builder/models"
+	"github.com/AJRDRGZ/db-query-builder/postgres"
+	sqlutil "github.com/alexyslozada/gosqlutils"
 
 	"github.com/MikelSot/clonewhatsapp/model"
 )
@@ -18,6 +18,7 @@ var fields = []string{
 	"start",
 	"user_id",
 	"chat_id",
+	"group_id",
 }
 
 var constraints = postgres.Constraints{
@@ -26,11 +27,16 @@ var constraints = postgres.Constraints{
 }
 
 var (
-	psqlInsert      = postgres.BuildSQLInsert(table, fields)
-	psqlUpdateStart = "UPDATE " + table + " SET start = $1 WHERE id = $2"
-	psqlDeleteSoft  = "UPDATE " + table + " SET deleted_at = now() WHERE id = $1"
-	psqlDelete      = "DELETE FROM " + table + " WHERE id = $1"
-	psqlGetAll      = postgres.BuildSQLSelect(table, fields)
+	psqlInsert        = postgres.BuildSQLInsert(table, fields)
+	psqlUpdateStart   = "UPDATE " + table + " SET start = $1 WHERE id = $2"
+	psqlDeleteSoft    = "UPDATE " + table + " SET deleted_at = now() WHERE id = $1"
+	psqlDelete        = "DELETE FROM " + table + " WHERE id = $1"
+	psqlGetAll        = postgres.BuildSQLSelect(table, fields)
+	psqlGetAllStart   = psqlGetAll + " WHERE start = true"
+	psqlGetSentToUser = psqlGetAll + `AS m WHERE chat_id = $1 AND m.deleted_at IS NULL
+					  ORDER BY m.created_at DESC , m.id DESC`
+	psqlGetSentToGroup = psqlGetAll + `AS m WHERE group_id = $1 AND m.deleted_at IS NULL
+					   ORDER BY m.created_at DESC , m.id DESC;`
 )
 
 type Message struct {
@@ -54,6 +60,7 @@ func (m2 Message) Create(m *model.Message) error {
 		m.Start,
 		m.UserID,
 		m.ChatID,
+		sqlutil.Int64ToNull(int64(m.GroupID)),
 	).Scan(&m.ID, &m.CreatedAt)
 	if err != nil {
 		return postgres.CheckConstraint(constraints, err)
@@ -107,10 +114,92 @@ func (m2 Message) GetWhere(specification models.FieldsSpecification) (model.Mess
 	return m2.scanRow(stmt.QueryRow(args...))
 }
 
+func (m2 Message) GetAllStart(pag models.Pagination) (model.Messages, error) {
+	query := psqlGetAllStart + " " + postgres.BuildSQLPagination(pag)
+	stmt, err := m2.db.Prepare(query)
+	if err != nil {
+		return model.Messages{}, err
+	}
+	defer stmt.Close()
+
+	rows, err := stmt.Query()
+	if err != nil {
+		return model.Messages{}, err
+	}
+	defer rows.Close()
+
+	ms := make(model.Messages, 0)
+	for rows.Next() {
+		m, err := m2.scanRow(rows)
+		if err != nil {
+			return nil, err
+		}
+
+		ms = append(ms, m)
+	}
+
+	return ms, nil
+}
+
+func (m2 Message) GetAllSentToUser(chatID uint, pag models.Pagination) (model.Messages, error) {
+	query := psqlGetSentToUser + " " + postgres.BuildSQLPagination(pag)
+	stmt, err := m2.db.Prepare(query)
+	if err != nil {
+		return model.Messages{}, err
+	}
+	defer stmt.Close()
+
+	rows, err := stmt.Query(chatID)
+	if err != nil {
+		return model.Messages{}, err
+	}
+	defer rows.Close()
+
+	ms := make(model.Messages, 0)
+	for rows.Next() {
+		m, err := m2.scanRow(rows)
+		if err != nil {
+			return nil, err
+		}
+
+		ms = append(ms, m)
+	}
+
+	return ms, nil
+}
+
+func (m2 Message) GetAllSentToGroup(groupID uint, pag models.Pagination) (model.Messages, error) {
+	query := psqlGetSentToGroup + " " + postgres.BuildSQLPagination(pag)
+	stmt, err := m2.db.Prepare(query)
+	if err != nil {
+		return model.Messages{}, err
+	}
+	defer stmt.Close()
+
+	rows, err := stmt.Query(groupID)
+	if err != nil {
+		return model.Messages{}, err
+	}
+	defer rows.Close()
+
+	ms := make(model.Messages, 0)
+	for rows.Next() {
+		m, err := m2.scanRow(rows)
+		if err != nil {
+			return nil, err
+		}
+
+		ms = append(ms, m)
+	}
+
+	return ms, nil
+}
+
 func (m2 Message) scanRow(s sqlutil.RowScanner) (model.Message, error) {
 	m := model.Message{}
 
 	messageNull := sql.NullString{}
+	groupIDNull := sql.NullInt64{}
 	deleteAtNull := sql.NullTime{}
 
 	err := s.Scan(
@@ -120,6 +209,7 @@ func (m2 Message) scanRow(s sqlutil.RowScanner) (model.Message, error) {
 		&m.Start,
 		&m.UserID,
 		&m.ChatID,
+		&groupIDNull,
 		&m.CreatedAt,
 		&deleteAtNull,
 	)
@@ -128,6 +218,7 @@ func (m2 Message) scanRow(s sqlutil.RowScanner) (model.Message, error) {
 	}
 
 	m.Message = messageNull.String
+	m.GroupID = uint(groupIDNull.Int64)
 	m.DeletedAt = deleteAtNull.Time
 
 	return m, nil

@@ -2,6 +2,7 @@ package message
 
 import (
 	"github.com/AJRDRGZ/db-query-builder/models"
+
 	"github.com/MikelSot/clonewhatsapp/model"
 )
 
@@ -12,6 +13,9 @@ type Storage interface {
 	Delete(ID uint) error
 
 	GetWhere(specification models.FieldsSpecification) (model.Message, error)
+	GetAllStart(pag models.Pagination) (model.Messages, error)
+	GetAllSentToUser(chatID uint, pag models.Pagination) (model.Messages, error)
+	GetAllSentToGroup(groupID uint, pag models.Pagination) (model.Messages, error)
 }
 
 type UseCase interface {
@@ -20,6 +24,8 @@ type UseCase interface {
 	DeleteSoft(ID uint) error
 	Delete(ID uint) error
 
-	GetByID(ID uint) (model.Message, error)
 	GetWhere(specification models.FieldsSpecification) (model.Message, error)
+	GetAllStart(pag models.Pagination) (model.Messages, error)
+	GetAllSentToUser(chatID uint, pag models.Pagination) (model.Messages, error)
+	GetAllSentToGroup(groupID uint, pag models.Pagination) (model.Messages, error)
 }

@@ -33,7 +33,6 @@ cmd/logs
 
 .editorconfig
 .dockerignore
-go.sum
 main
 
 README.md

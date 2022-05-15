@@ -13,6 +13,7 @@ type Storage interface {
 	Delete(ID uint) error
 
 	GetWhere(specification models.FieldsSpecification) (model.Group, error)
+	GetAllByUserID(userID uint, pag models.Pagination) (model.Groups, error)
 }
 
 type UseCase interface {
@@ -24,7 +25,5 @@ type UseCase interface {
 
 	GetByID(ID uint) (model.Group, error)
 	GetWhere(specification models.FieldsSpecification) (model.Group, error)
+	GetAllByUserID(userID uint, pag models.Pagination) (model.Groups, error)
 }
-
-// OBTENER TODOS LOS GRUPOS DONDE EL USUARIO ESTE AGREGADO (relation)
-// 	GetByName(name string) (model.Groups, error)

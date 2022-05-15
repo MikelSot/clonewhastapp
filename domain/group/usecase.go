@@ -136,6 +136,11 @@ func (g Group) GetWhere(specification models.FieldsSpecification) (model.Group, 
 	return group, nil
 }
 
+func (g Group) GetAllByUserID(userID uint, pag models.Pagination) (model.Groups, error) {
+	//TODO implement me
+	panic("implement me")
+}
+
 // en relation
 func (g Group) isValidateData(m *model.Group) error {
 	m.Name = strings.TrimSpace(m.Name)

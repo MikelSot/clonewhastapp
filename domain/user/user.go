@@ -16,6 +16,9 @@ type Storage interface {
 
 	GetAllWhere(specification models.FieldsSpecification) (model.Users, error)
 	GetWhere(specification models.FieldsSpecification) (model.User, error)
+	GetAllAddedUser(userID uint, pag models.Pagination) (model.Users, error)
+	GetAllMembers(groupID uint, pag models.Pagination) (model.Users, error)
+	GetTotalForUser(userID uint) (model.TotalForUser, error)
 }
 
 type UseCase interface {
@@ -31,4 +34,9 @@ type UseCase interface {
 	GetByNickname(nickname string) (model.User, error)
 	GetWhere(specification models.FieldsSpecification) (model.User, error)
 	GetAllWhere(specification models.FieldsSpecification) (model.Users, error)
+	GetAllAddedUser(userID uint, pag models.Pagination) (model.Users, error)
+	GetAllMembers(groupID uint, pag models.Pagination) (model.Users, error)
+	GetTotalForUser(userID uint) (model.TotalForUser, error)
 }
+
+// buscar por usuario por nickname

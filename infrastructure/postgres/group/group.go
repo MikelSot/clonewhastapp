@@ -19,12 +19,16 @@ var fields = []string{
 }
 
 var (
-	psqlInsert        = postgres.BuildSQLInsert(table, fields)
-	psqlUpdate        = postgres.BuildSQLUpdateByID(table, append(fields[:4], fields[5:]...))
-	psqlUpdatePicture = "UPDATE " + table + " SET picture = $1 WHERE id = $2"
-	psqlDeleteSoft    = "UPDATE " + table + " SET deleted_at = now() WHERE id = $1"
-	psqlDelete        = "DELETE FROM " + table + " WHERE id = $1"
-	psqlGetAll        = postgres.BuildSQLSelect(table, fields)
+	psqlInsert         = postgres.BuildSQLInsert(table, fields)
+	psqlUpdate         = postgres.BuildSQLUpdateByID(table, append(fields[:4], fields[5:]...))
+	psqlUpdatePicture  = "UPDATE " + table + " SET picture = $1 WHERE id = $2"
+	psqlDeleteSoft     = "UPDATE " + table + " SET deleted_at = now() WHERE id = $1"
+	psqlDelete         = "DELETE FROM " + table + " WHERE id = $1"
+	psqlGetAll         = postgres.BuildSQLSelect(table, fields)
+	psqlGetAllByUserID = psqlGetAll + `AS g WHERE g.id IN (
+							SELECT group_id FROM chats AS c
+						    	WHERE user_id = $1 AND c.deleted_at IS NULL
+						) AND g.deleted_at IS NULL`
 )
 
 type Group struct {
@@ -130,6 +134,33 @@ func (g Group) GetWhere(specification models.FieldsSpecification) (model.Group, 
 	defer stmt.Close()
 
 	return g.scanRow(stmt.QueryRow(args...))
+}
+
+func (g Group) GetAllByUserID(userID uint, pag models.Pagination) (model.Groups, error) {
+	query := psqlGetAllByUserID + " " + postgres.BuildSQLPagination(pag)
+	stmt, err := g.db.Prepare(query)
+	if err != nil {
+		return model.Groups{}, err
+	}
+	defer stmt.Close()
+
+	rows, err := stmt.Query(userID)
+	if err != nil {
+		return model.Groups{}, err
+	}
+	defer rows.Close()
+
+	ms := make(model.Groups, 0)
+	for rows.Next() {
+		m, err := g.scanRow(rows)
+		if err != nil {
+			return nil, err
+		}
+
+		ms = append(ms, m)
+	}
+
+	return ms, nil
 }
 
 func (g Group) scanRow(s sqlutil.RowScanner) (model.Group, error) {

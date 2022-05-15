@@ -13,7 +13,8 @@ var (
 type Chat struct {
 	ID        uint      `json:"id"`
 	UserID    uint      `json:"user_id"`
-	GroupID   uint      `json:"group_id"`
+	ContactID uint      `json:"contact_id,omitempty"` // el contact es null porque si queremos crear grupo que haremos con  el contact?
+	GroupID   uint      `json:"group_id,omitempty"`
 	CreatedAt time.Time `json:"created_at"`
 	DeletedAt time.Time `json:"deleted_at"`
 }

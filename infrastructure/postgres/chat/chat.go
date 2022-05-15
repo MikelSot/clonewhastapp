@@ -14,6 +14,7 @@ const table = "chats"
 var fields = []string{
 	"user_id",
 	"group_id",
+	"contact_id",
 }
 
 var constraints = postgres.Constraints{
@@ -35,6 +36,7 @@ func New(db *sql.DB) Chat {
 	return Chat{db}
 }
 
+// TODO: al crear un chat este resibe un array de chats, ay que si se crea un grupo o un chat con otra persona va a resivor dos el id del chat y de la otra perona
 func (c Chat) Create(m *model.Chat) error {
 	stmt, err := c.db.Prepare(psqlInsert)
 	if err != nil {
@@ -45,6 +47,7 @@ func (c Chat) Create(m *model.Chat) error {
 	err = stmt.QueryRow(
 		m.UserID,
 		sqlutil.Int64ToNull(int64(m.GroupID)),
+		sqlutil.Int64ToNull(int64(m.ContactID)),
 	).Scan(&m.ID, &m.CreatedAt)
 	if err != nil {
 		return postgres.CheckConstraint(constraints, err)

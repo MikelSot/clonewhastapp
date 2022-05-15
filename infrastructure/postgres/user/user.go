@@ -31,13 +31,22 @@ var constraints = postgres.Constraints{
 }
 
 var (
-	psqlInsert         = postgres.BuildSQLInsert(table, fields)
-	psqlUpdate         = postgres.BuildSQLUpdateByID(table, append(fields[:4], fields[5:]...))
-	psqlResetPassword  = "UPDATE users SET password = $1 WHERE id = $2"
-	psqlUpdateNickname = "UPDATE users SET nickname = $1 WHERE id = $2"
-	psqlDeleteSoft     = "UPDATE " + table + " SET deleted_at = now() WHERE id = $1"
-	psqlDelete         = "DELETE FROM " + table + " WHERE id = $1"
-	psqlGetAll         = postgres.BuildSQLSelect(table, append(fields[:4], fields[5:]...))
+	psqlInsert          = postgres.BuildSQLInsert(table, fields)
+	psqlUpdate          = postgres.BuildSQLUpdateByID(table, append(fields[:4], fields[5:]...))
+	psqlResetPassword   = "UPDATE users SET password = $1 WHERE id = $2"
+	psqlUpdateNickname  = "UPDATE users SET nickname = $1 WHERE id = $2"
+	psqlDeleteSoft      = "UPDATE " + table + " SET deleted_at = now() WHERE id = $1"
+	psqlDelete          = "DELETE FROM " + table + " WHERE id = $1"
+	psqlGetAll          = postgres.BuildSQLSelect(table, append(fields[:4], fields[5:]...))
+	psqlGetAllAddedUser = psqlGetAll + ` AS u WHERE u.id IN (
+				    SELECT contact_id FROM chats AS c
+				    WHERE user_id = $1 AND c.deleted_at IS NULL
+				) AND u.deleted_at IS NULL`
+	psqGetAllMembers = psqlGetAll + `AS u WHERE u.id IN (
+					     SELECT user_id FROM chats AS c
+					     WHERE group_id = $1 AND c.deleted_at IS NULL
+					 ) AND u.deleted_at IS NULL`
+	psqlGetTotalForUser = "SELECT id, user_id, contacts, groups FROM total_for_users WHERE user_id = $1"
 )
 
 type User struct {
@@ -181,7 +190,61 @@ func (u User) GetAllWhere(specification models.FieldsSpecification) (model.Users
 	}
 	defer rows.Close()
 
-	ms := model.Users{}
+	ms := make(model.Users, 0)
+	for rows.Next() {
+		m, err := u.scanRow(rows)
+		if err != nil {
+			return nil, err
+		}
+
+		ms = append(ms, m)
+	}
+
+	return ms, nil
+}
+
+func (u User) GetAllAddedUser(userID uint, pag models.Pagination) (model.Users, error) {
+	query := psqlGetAllAddedUser + " " + postgres.BuildSQLPagination(pag)
+	stmt, err := u.db.Prepare(query)
+	if err != nil {
+		return model.Users{}, err
+	}
+	defer stmt.Close()
+
+	rows, err := stmt.Query(userID)
+	if err != nil {
+		return model.Users{}, err
+	}
+	defer rows.Close()
+
+	ms := make(model.Users, 0)
+	for rows.Next() {
+		m, err := u.scanRow(rows)
+		if err != nil {
+			return nil, err
+		}
+
+		ms = append(ms, m)
+	}
+
+	return ms, nil
+}
+
+func (u User) GetAllMembers(groupID uint, pag models.Pagination) (model.Users, error) {
+	query := psqGetAllMembers + " " + postgres.BuildSQLPagination(pag)
+	stmt, err := u.db.Prepare(query)
+	if err != nil {
+		return model.Users{}, err
+	}
+	defer stmt.Close()
+
+	rows, err := stmt.Query(groupID)
+	if err != nil {
+		return model.Users{}, err
+	}
+	defer rows.Close()
+
+	ms := make(model.Users, 0)
 	for rows.Next() {
 		m, err := u.scanRow(rows)
 		if err != nil {
@@ -221,6 +284,22 @@ func (u User) scanRow(s sqlutil.RowScanner) (model.User, error) {
 	m.Description = descriptionNull.String
 	m.Picture = pictureNull.String
 	m.UpdatedAt = updatedAtNull.Time
+
+	return m, nil
+}
+
+func (u User) GetTotalForUser(userID uint) (model.TotalForUser, error) {
+	stmt, err := u.db.Prepare(psqlGetTotalForUser)
+	if err != nil {
+		return model.TotalForUser{}, err
+	}
+	defer stmt.Close()
+
+	m := model.TotalForUser{}
+	err = stmt.QueryRow(userID).Scan(&m.ID, &m.UserID, &m.Contacts, &m.Groups)
+	if err != nil {
+		return model.TotalForUser{}, err
+	}
 
 	return m, nil
 }

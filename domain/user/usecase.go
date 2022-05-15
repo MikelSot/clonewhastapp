@@ -278,6 +278,21 @@ func (u User) GetAllWhere(specification models.FieldsSpecification) (model.Users
 	return groupUsers, nil
 }
 
+func (u User) GetAllAddedUser(userID uint, pag models.Pagination) (model.Users, error) {
+	//TODO implement me
+	panic("implement me")
+}
+
+func (u User) GetAllMembers(groupID uint, pag models.Pagination) (model.Users, error) {
+	//TODO implement me
+	panic("implement me")
+}
+
+func (u User) GetTotalForUser(userID uint) (model.TotalForUser, error) {
+	//TODO implement me
+	panic("implement me")
+}
+
 func (u User) isValidateData(m *model.User) error {
 	m.FirstName = strings.TrimSpace(m.FirstName)
 	m.LastName = strings.TrimSpace(m.LastName)
